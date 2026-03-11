@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom"
 import Sidebar from "../components/layout/Sidebar"
 import Topbar from "../components/layout/Topbar"
+import SyncBanner from "../components/SyncBanner"
 
 const pageTitles = {
   "/": "Overview",
@@ -21,6 +22,7 @@ export default function AppLayout() {
       <Sidebar />
       <div className="flex-1 ml-16 flex flex-col min-h-screen">
         <Topbar title={title} />
+        <SyncBanner />
         <main className="flex-1 p-6">
           <Outlet />
         </main>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.auth import (
     get_current_user,
 )
 from app.schemas import RegisterRequest, LoginRequest, TokenResponse, UserResponse
+from app.routers.sync import run_sync
 import httpx
 import os
 
@@ -71,9 +72,12 @@ def github_login():
 
 
 @router.get("/github/callback")
-async def github_callback(code: str, db: Session = Depends(get_db)):
+async def github_callback(
+    code: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     async with httpx.AsyncClient() as client:
-        # Exchange code for token
         token_res = await client.post(
             "https://github.com/login/oauth/access_token",
             json={
@@ -89,14 +93,12 @@ async def github_callback(code: str, db: Session = Depends(get_db)):
         if not github_token:
             raise HTTPException(status_code=400, detail="GitHub OAuth failed")
 
-        # Get GitHub user info
         user_res = await client.get(
             "https://api.github.com/user",
             headers={"Authorization": f"Bearer {github_token}"},
         )
         github_user = user_res.json()
 
-        # Get primary email if not public
         email = github_user.get("email")
         if not email:
             emails_res = await client.get(
@@ -107,7 +109,6 @@ async def github_callback(code: str, db: Session = Depends(get_db)):
             primary = next((e for e in emails if e.get("primary")), None)
             email = primary["email"] if primary else f"{github_user['login']}@github.local"
 
-    # Find or create user
     user = db.query(User).filter(User.email == email).first()
     if not user:
         user = User(
@@ -124,6 +125,10 @@ async def github_callback(code: str, db: Session = Depends(get_db)):
     db.refresh(user)
 
     app_token = create_access_token({"sub": str(user.id)})
+
+    # Auto-trigger sync in background
+    background_tasks.add_task(run_sync, user.id, db)
+
     return RedirectResponse(f"{FRONTEND_URL}/auth/callback?token={app_token}")
 
 
@@ -142,7 +147,11 @@ def gitlab_login():
 
 
 @router.get("/gitlab/callback")
-async def gitlab_callback(code: str, db: Session = Depends(get_db)):
+async def gitlab_callback(
+    code: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
             "https://gitlab.com/oauth/token",
@@ -183,4 +192,8 @@ async def gitlab_callback(code: str, db: Session = Depends(get_db)):
     db.refresh(user)
 
     app_token = create_access_token({"sub": str(user.id)})
+
+    # Auto-trigger sync in background
+    background_tasks.add_task(run_sync, user.id, db)
+
     return RedirectResponse(f"{FRONTEND_URL}/auth/callback?token={app_token}")
