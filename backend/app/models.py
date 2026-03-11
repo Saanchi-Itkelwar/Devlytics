@@ -9,9 +9,12 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    full_name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=True)
     github_username = Column(String, nullable=True)
+    github_access_token = Column(String, nullable=True)
     gitlab_username = Column(String, nullable=True)
+    gitlab_access_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     repositories = relationship("Repository", back_populates="owner")
@@ -24,7 +27,7 @@ class Repository(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     name = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
-    source = Column(String, nullable=False)  # "github" or "gitlab"
+    source = Column(String, nullable=False)
     language = Column(String, nullable=True)
     last_activity = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -52,7 +55,7 @@ class PullRequest(Base):
     id = Column(Integer, primary_key=True, index=True)
     repo_id = Column(Integer, ForeignKey("repositories.id"))
     title = Column(String, nullable=False)
-    state = Column(String, nullable=False)  # "open" or "merged"
+    state = Column(String, nullable=False)
     opened_at = Column(DateTime, nullable=True)
     merged_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -64,7 +67,7 @@ class Issue(Base):
     id = Column(Integer, primary_key=True, index=True)
     repo_id = Column(Integer, ForeignKey("repositories.id"))
     title = Column(String, nullable=False)
-    state = Column(String, nullable=False)  # "open" or "closed"
+    state = Column(String, nullable=False)
     opened_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
