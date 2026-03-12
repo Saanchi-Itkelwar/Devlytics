@@ -1,5 +1,6 @@
 import httpx
 from datetime import datetime
+from datetime import timezone
 from sqlalchemy.orm import Session
 from app.models import Repository, Commit, PullRequest, Issue, RepositoryLanguage
 import asyncio
@@ -120,7 +121,14 @@ def parse_github_datetime(dt_str: str | None) -> datetime | None:
     if not dt_str:
         return None
     try:
-        return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%SZ")
+        # Handle both "Z" suffix and "+05:30" style offsets
+        if dt_str.endswith("Z"):
+            dt_str = dt_str[:-1] + "+00:00"
+        dt = datetime.fromisoformat(dt_str)
+        # Convert to UTC and strip timezone info for storage
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
     except Exception:
         return None
 
