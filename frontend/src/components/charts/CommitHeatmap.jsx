@@ -1,64 +1,63 @@
 import { useMemo } from "react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+const WEEKS = 53
+const DAYS = 7
 
 function getColor(count) {
   if (count === 0) return "#1E2A3A"
   if (count <= 2) return "#1e3a5f"
-  if (count <= 5) return "#1d4ed8"
-  if (count <= 10) return "#3b82f6"
+  if (count <= 5) return "#1d5494"
+  if (count <= 9) return "#2563eb"
   return "#5B8CFF"
 }
 
 export default function CommitHeatmap({ data = [] }) {
-  const { weeks, monthLabels } = useMemo(() => {
-    const dateMap = {}
-    data.forEach(d => { dateMap[d.date] = d.count })
+  const grid = useMemo(() => {
+    const map = {}
+    data.forEach(({ date, count }) => { map[date] = count })
 
     const today = new Date()
-    const start = new Date(today)
-    start.setDate(start.getDate() - 364)
-    // align to Sunday
-    start.setDate(start.getDate() - start.getDay())
+    const cells = []
 
-    const weeks = []
-    const monthLabels = []
-    let current = new Date(start)
-    let lastMonth = -1
-
-    while (current <= today) {
+    for (let w = WEEKS - 1; w >= 0; w--) {
       const week = []
-      for (let d = 0; d < 7; d++) {
-        const dateStr = current.toISOString().split("T")[0]
-        const month = current.getMonth()
-        if (d === 0 && month !== lastMonth) {
-          monthLabels.push({ label: MONTHS[month], weekIndex: weeks.length })
-          lastMonth = month
-        }
-        week.push({
-          date: dateStr,
-          count: dateMap[dateStr] || 0,
-          isFuture: current > today,
-        })
-        current.setDate(current.getDate() + 1)
+      for (let d = 0; d < DAYS; d++) {
+        const date = new Date(today)
+        date.setDate(today.getDate() - (w * 7 + (DAYS - 1 - d)))
+        const key = date.toISOString().split("T")[0]
+        week.push({ date: key, count: map[key] || 0 })
       }
-      weeks.push(week)
+      cells.push(week)
     }
 
-    return { weeks, monthLabels }
+    return cells
   }, [data])
 
+  const months = useMemo(() => {
+    const labels = []
+    const today = new Date()
+    for (let w = 0; w < WEEKS; w += 4) {
+      const date = new Date(today)
+      date.setDate(today.getDate() - ((WEEKS - 1 - w) * 7))
+      labels.push({
+        label: date.toLocaleString("default", { month: "short" }),
+        week: w,
+      })
+    }
+    return labels
+  }, [])
+
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-block">
+    <TooltipProvider delayDuration={0}>
+      <div className="overflow-x-auto">
         {/* Month labels */}
         <div className="flex mb-1 ml-8">
-          {monthLabels.map(({ label, weekIndex }) => (
+          {months.map(({ label, week }) => (
             <div
-              key={`${label}-${weekIndex}`}
-              className="text-[10px] text-muted absolute"
-              style={{ left: `${weekIndex * 14 + 32}px`, position: "relative", minWidth: 28 }}
+              key={week}
+              className="text-[10px] text-muted"
+              style={{ width: `${(4 / WEEKS) * 100}%` }}
             >
               {label}
             </div>
@@ -67,44 +66,38 @@ export default function CommitHeatmap({ data = [] }) {
 
         <div className="flex gap-1">
           {/* Day labels */}
-          <div className="flex flex-col gap-[3px] mr-1">
-            {DAYS.map((d, i) => (
-              <div key={d} className="h-[11px] text-[9px] text-muted flex items-center">
+          <div className="flex flex-col gap-1 mr-1">
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <div key={i} className="w-6 h-3 text-[10px] text-muted flex items-center">
                 {i % 2 !== 0 ? d : ""}
               </div>
             ))}
           </div>
 
           {/* Grid */}
-          {weeks.map((week, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px]">
-              {week.map((day) => (
-                <div
-                  key={day.date}
-                  title={day.isFuture ? "" : `${day.date}: ${day.count} commits`}
-                  className="w-[11px] h-[11px] rounded-[2px] cursor-pointer transition-opacity hover:opacity-80"
-                  style={{
-                    backgroundColor: day.isFuture ? "transparent" : getColor(day.count),
-                  }}
-                />
+          {grid.map((week, wi) => (
+            <div key={wi} className="flex flex-col gap-1">
+              {week.map((cell, di) => (
+                <Tooltip key={di}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="w-3 h-3 rounded-sm cursor-pointer transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: getColor(cell.count) }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="bg-[#1E2A3A] border-border-custom text-white text-xs"
+                  >
+                    <p className="font-medium">{cell.date}</p>
+                    <p className="text-muted">{cell.count} commit{cell.count !== 1 ? "s" : ""}</p>
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           ))}
         </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-1 mt-3 justify-end">
-          <span className="text-[10px] text-muted mr-1">Less</span>
-          {[0, 2, 5, 10, 15].map(v => (
-            <div
-              key={v}
-              className="w-[11px] h-[11px] rounded-[2px]"
-              style={{ backgroundColor: getColor(v) }}
-            />
-          ))}
-          <span className="text-[10px] text-muted ml-1">More</span>
-        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

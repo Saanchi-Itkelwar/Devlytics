@@ -1,146 +1,168 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { GitBranch, Star, GitFork, Lock, Globe, ArrowUpRight } from "lucide-react"
-import { Card } from "@/components/ui/card"
-import { repoService } from "../services/analytics"
+import { GitBranch, Star, GitFork, Lock, Globe, ChevronRight, Search } from "lucide-react"
+import { useRepos } from "../hooks/useAnalytics"
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—"
+  const d = new Date(dateStr)
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
 
 export default function Repositories() {
-  const [repos, setRepos] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { data: repos, loading } = useRepos()
   const [search, setSearch] = useState("")
-  const [sortBy, setSortBy] = useState("commits")
+  const [sortBy, setSortBy] = useState("last_activity")
   const navigate = useNavigate()
 
-  useEffect(() => {
-    repoService.getAll()
-      .then(res => setRepos(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
-
   const filtered = repos
-    .filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => (b[sortBy] ?? 0) - (a[sortBy] ?? 0))
-
-  const LANG_COLORS = {
-    Python: "#3572A5", JavaScript: "#F1E05A", TypeScript: "#3178C6",
-    Java: "#B07219", Go: "#00ADD8", Rust: "#DEA584", Ruby: "#701516",
-    "C++": "#F34B7D", C: "#555555", CSS: "#563D7C", HTML: "#E34C26",
-  }
+    .filter((r) =>
+      r.name.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === "commits") return b.commit_count - a.commit_count
+      if (sortBy === "stars") return b.stars - a.stars
+      if (sortBy === "last_activity") {
+        return new Date(b.last_activity || 0) - new Date(a.last_activity || 0)
+      }
+      return 0
+    })
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-white">Repositories</h2>
-        <p className="text-sm text-muted mt-1">
-          {repos.length} repositories synced
-        </p>
+        <p className="text-sm text-muted mt-1">All your repositories and their activity.</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Search repositories..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="bg-surface border border-border-custom rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-muted outline-none w-56"
-        />
-        <select
-          value={sortBy}
-          onChange={e => setSortBy(e.target.value)}
-          className="bg-surface border border-border-custom rounded-lg px-3 py-1.5 text-xs text-white outline-none"
-        >
-          <option value="commits">Sort by Commits</option>
-          <option value="pull_requests">Sort by PRs</option>
-          <option value="issues">Sort by Issues</option>
-          <option value="stars">Sort by Stars</option>
-        </select>
+      {/* Controls */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 bg-surface border border-border-custom rounded-lg px-3 py-2 flex-1 min-w-48">
+          <Search size={13} className="text-muted" />
+          <input
+            type="text"
+            placeholder="Search repositories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent text-xs text-white placeholder:text-muted outline-none w-full"
+          />
+        </div>
+
+        <div className="flex gap-1">
+          {[
+            { key: "last_activity", label: "Recent" },
+            { key: "commits", label: "Commits" },
+            { key: "stars", label: "Stars" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setSortBy(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                sortBy === key
+                  ? "bg-accent-blue/15 text-accent-blue"
+                  : "text-muted hover:text-white bg-surface border border-border-custom"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
-      <Card className="bg-surface border-border-custom rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border-custom">
-                {["Repository", "Language", "Commits", "PRs", "Issues", "Last Activity", ""].map(h => (
-                  <th
-                    key={h}
-                    className="text-left text-xs text-muted font-medium px-4 py-3"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i} className="border-b border-border-custom">
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <td key={j} className="px-4 py-3">
-                          <div className="h-4 bg-border-custom rounded animate-pulse w-16" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                : filtered.map(repo => (
-                    <tr
-                      key={repo.id}
-                      className="border-b border-border-custom hover:bg-[#0B0F17]/50 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/repositories/${repo.id}`)}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <GitBranch size={13} className="text-muted flex-shrink-0" />
-                          <div>
-                            <p className="text-sm text-white font-medium">{repo.name}</p>
-                            {repo.description && (
-                              <p className="text-xs text-muted truncate max-w-48">
-                                {repo.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {repo.language ? (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{
-                                backgroundColor: LANG_COLORS[repo.language] || "#4A5568"
-                              }}
-                            />
-                            <span className="text-xs text-white">{repo.language}</span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-white">{repo.commits}</td>
-                      <td className="px-4 py-3 text-sm text-white">{repo.pull_requests}</td>
-                      <td className="px-4 py-3 text-sm text-white">{repo.issues}</td>
-                      <td className="px-4 py-3 text-xs text-muted">
-                        {repo.last_activity || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {repo.is_private
-                            ? <Lock size={12} className="text-muted" />
-                            : <Globe size={12} className="text-muted" />
-                          }
-                          <ArrowUpRight size={13} className="text-muted" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-              }
-            </tbody>
-          </table>
+      <div className="bg-surface border border-border-custom rounded-xl overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-12 gap-4 px-5 py-3 border-b border-border-custom">
+          <div className="col-span-5 text-xs text-muted font-medium">Repository</div>
+          <div className="col-span-2 text-xs text-muted font-medium text-center">Commits</div>
+          <div className="col-span-1 text-xs text-muted font-medium text-center">PRs</div>
+          <div className="col-span-1 text-xs text-muted font-medium text-center">Issues</div>
+          <div className="col-span-2 text-xs text-muted font-medium">Last Activity</div>
+          <div className="col-span-1" />
         </div>
-      </Card>
+
+        {/* Rows */}
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-border-custom">
+              <div className="col-span-5 h-4 bg-border-custom rounded animate-pulse" />
+              <div className="col-span-2 h-4 bg-border-custom rounded animate-pulse" />
+              <div className="col-span-1 h-4 bg-border-custom rounded animate-pulse" />
+              <div className="col-span-1 h-4 bg-border-custom rounded animate-pulse" />
+              <div className="col-span-2 h-4 bg-border-custom rounded animate-pulse" />
+            </div>
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-sm text-muted">No repositories found</p>
+          </div>
+        ) : (
+          filtered.map((repo) => (
+            <div
+              key={repo.id}
+              onClick={() => navigate(`/repositories/${repo.id}`)}
+              className="grid grid-cols-12 gap-4 px-5 py-4 border-b border-border-custom last:border-0 hover:bg-[#0B0F17] cursor-pointer transition-colors group"
+            >
+              {/* Name */}
+              <div className="col-span-5 flex items-center gap-3 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-accent-blue/10 flex items-center justify-center flex-shrink-0">
+                  <GitBranch size={13} className="text-accent-blue" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white font-medium truncate">{repo.name}</span>
+                    {repo.is_private ? (
+                      <Lock size={11} className="text-muted flex-shrink-0" />
+                    ) : (
+                      <Globe size={11} className="text-muted flex-shrink-0" />
+                    )}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
+                      repo.source === "github"
+                        ? "bg-[#24292e] text-gray-300"
+                        : "bg-[#FC6D26]/15 text-[#FC6D26]"
+                    }`}>
+                      {repo.source}
+                    </span>
+                  </div>
+                  {repo.language && (
+                    <span className="text-xs text-muted">{repo.language}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Commits */}
+              <div className="col-span-2 flex items-center justify-center">
+                <span className="text-sm text-white font-medium">
+                  {repo.commit_count.toLocaleString()}
+                </span>
+              </div>
+
+              {/* PRs */}
+              <div className="col-span-1 flex items-center justify-center">
+                <span className="text-sm text-white">{repo.pr_count}</span>
+              </div>
+
+              {/* Issues */}
+              <div className="col-span-1 flex items-center justify-center">
+                <span className="text-sm text-white">{repo.issue_count}</span>
+              </div>
+
+              {/* Last Activity */}
+              <div className="col-span-2 flex items-center">
+                <span className="text-xs text-muted">{formatDate(repo.last_activity)}</span>
+              </div>
+
+              {/* Arrow */}
+              <div className="col-span-1 flex items-center justify-end">
+                <ChevronRight
+                  size={14}
+                  className="text-muted group-hover:text-white transition-colors"
+                />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,5 @@
 import httpx
 from datetime import datetime
-from datetime import timezone
 from sqlalchemy.orm import Session
 from app.models import Repository, Commit, PullRequest, Issue, RepositoryLanguage
 import asyncio
@@ -22,7 +21,12 @@ async def fetch_github_repos(token: str) -> list:
             res = await client.get(
                 f"{BASE_URL}/user/repos",
                 headers=HEADERS(token),
-                params={"per_page": 100, "page": page, "sort": "updated", "affiliation": "owner"},
+                params={
+                    "per_page": 100,
+                    "page": page,
+                    "sort": "updated",
+                    "affiliation": "owner",
+                },
             )
             if res.status_code != 200:
                 break
@@ -36,15 +40,25 @@ async def fetch_github_repos(token: str) -> list:
     return repos
 
 
-async def fetch_repo_commits(token: str, full_name: str, username: str) -> list:
+async def fetch_repo_commits(
+    token: str,
+    full_name: str,
+    username: str,
+    default_branch: str,
+) -> list:
     commits = []
     page = 1
     async with httpx.AsyncClient(timeout=30) as client:
-        while page <= 5:  # cap at 500 commits per repo
+        while page <= 5:
             res = await client.get(
                 f"{BASE_URL}/repos/{full_name}/commits",
                 headers=HEADERS(token),
-                params={"per_page": 100, "page": page, "author": username},
+                params={
+                    "per_page": 100,
+                    "page": page,
+                    "author": username,
+                    "sha": default_branch,   # ← only default branch
+                },
             )
             if res.status_code != 200:
                 break
@@ -97,7 +111,6 @@ async def fetch_repo_issues(token: str, full_name: str) -> list:
                 data = res.json()
                 if not data:
                     break
-                # GitHub returns PRs in issues endpoint — filter them out
                 real_issues = [i for i in data if "pull_request" not in i]
                 issues.extend(real_issues)
                 page += 1
@@ -121,28 +134,19 @@ def parse_github_datetime(dt_str: str | None) -> datetime | None:
     if not dt_str:
         return None
     try:
-        # Handle both "Z" suffix and "+05:30" style offsets
-        if dt_str.endswith("Z"):
-            dt_str = dt_str[:-1] + "+00:00"
-        dt = datetime.fromisoformat(dt_str)
-        # Convert to UTC and strip timezone info for storage
-        if dt.tzinfo is not None:
-            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-        return dt
+        return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%SZ")
     except Exception:
         return None
 
 
 async def sync_github_data(user_id: int, token: str, username: str, db: Session):
-    """Main GitHub sync function — fetches all data and stores in DB."""
-
-    # 1. Fetch all repos
     raw_repos = await fetch_github_repos(token)
 
     for raw_repo in raw_repos:
         full_name = raw_repo["full_name"]
+        is_fork = raw_repo.get("fork", False)
+        default_branch = raw_repo.get("default_branch", "main")
 
-        # Upsert repository
         repo = db.query(Repository).filter(
             Repository.full_name == full_name,
             Repository.user_id == user_id,
@@ -159,11 +163,12 @@ async def sync_github_data(user_id: int, token: str, username: str, db: Session)
         repo.stars = raw_repo.get("stargazers_count", 0)
         repo.forks = raw_repo.get("forks_count", 0)
         repo.is_private = raw_repo.get("private", False)
+        repo.is_fork = is_fork
         repo.last_activity = parse_github_datetime(raw_repo.get("pushed_at"))
         db.commit()
         db.refresh(repo)
 
-        # 2. Languages
+        # Languages
         raw_langs = await fetch_repo_languages(token, full_name)
         if raw_langs:
             db.query(RepositoryLanguage).filter(
@@ -178,8 +183,13 @@ async def sync_github_data(user_id: int, token: str, username: str, db: Session)
                 ))
             db.commit()
 
-        # 3. Commits
-        raw_commits = await fetch_repo_commits(token, full_name, username)
+        # Skip commits on forked repos — they aren't contributions
+        if is_fork:
+            await asyncio.sleep(0.1)
+            continue
+
+        # Commits — default branch only
+        raw_commits = await fetch_repo_commits(token, full_name, username, default_branch)
         existing_shas = {
             c.sha for c in db.query(Commit).filter(Commit.repo_id == repo.id).all()
         }
@@ -198,7 +208,7 @@ async def sync_github_data(user_id: int, token: str, username: str, db: Session)
             ))
         db.commit()
 
-        # 4. Pull Requests
+        # Pull Requests
         raw_prs = await fetch_repo_pull_requests(token, full_name)
         db.query(PullRequest).filter(PullRequest.repo_id == repo.id).delete()
         for raw_pr in raw_prs:
@@ -212,7 +222,7 @@ async def sync_github_data(user_id: int, token: str, username: str, db: Session)
             ))
         db.commit()
 
-        # 5. Issues
+        # Issues
         raw_issues = await fetch_repo_issues(token, full_name)
         db.query(Issue).filter(Issue.repo_id == repo.id).delete()
         for raw_issue in raw_issues:
@@ -225,5 +235,4 @@ async def sync_github_data(user_id: int, token: str, username: str, db: Session)
             ))
         db.commit()
 
-        # Small delay to respect GitHub rate limits
         await asyncio.sleep(0.3)

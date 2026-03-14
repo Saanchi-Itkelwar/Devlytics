@@ -43,11 +43,12 @@ class Repository(Base):
     name = Column(String, nullable=False)
     full_name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    source = Column(String, nullable=False)       # "github" or "gitlab"
+    source = Column(String, nullable=False)
     language = Column(String, nullable=True)
     stars = Column(Integer, default=0)
     forks = Column(Integer, default=0)
     is_private = Column(Boolean, default=False)
+    is_fork = Column(Boolean, default=False)
     last_activity = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

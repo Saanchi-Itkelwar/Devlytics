@@ -4,10 +4,16 @@ from sqlalchemy import func, case
 from datetime import datetime, timedelta
 from typing import Optional
 from app.database import get_db
-from app.models import User, Repository, Commit, PullRequest, Issue, RepositoryLanguage
+from app.models import Repository, Commit, PullRequest, Issue, RepositoryLanguage
 from app.auth import get_current_user
+from app.models import User
 
 router = APIRouter()
+
+
+def get_user_repo_ids(user_id: int, db: Session) -> list[int]:
+    repos = db.query(Repository.id).filter(Repository.user_id == user_id).all()
+    return [r.id for r in repos]
 
 
 # ── Overview ──────────────────────────────────────────────────────
@@ -17,60 +23,46 @@ def get_overview(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
+    # Only count non-fork repos for commits
+    non_fork_repo_ids = [
+        r.id for r in db.query(Repository).filter(
+            Repository.user_id == current_user.id,
+            Repository.is_fork == False,
+        ).all()
     ]
 
-    total_commits = db.query(func.count(Commit.id))\
-        .filter(Commit.repo_id.in_(repo_ids)).scalar() or 0
+    all_repo_ids = get_user_repo_ids(current_user.id, db)
 
-    active_repos = db.query(func.count(Repository.id))\
-        .filter(Repository.user_id == user_id).scalar() or 0
+    total_commits = db.query(func.count(Commit.id)).filter(
+        Commit.repo_id.in_(non_fork_repo_ids)
+    ).scalar() or 0
 
-    prs_merged = db.query(func.count(PullRequest.id))\
-        .filter(
-            PullRequest.repo_id.in_(repo_ids),
-            PullRequest.state == "merged"
-        ).scalar() or 0
+    active_repos = db.query(func.count(Repository.id)).filter(
+        Repository.user_id == current_user.id,
+        Repository.is_fork == False,
+    ).scalar() or 0
 
-    issues_resolved = db.query(func.count(Issue.id))\
-        .filter(
-            Issue.repo_id.in_(repo_ids),
-            Issue.state == "closed"
-        ).scalar() or 0
+    prs_merged = db.query(func.count(PullRequest.id)).filter(
+        PullRequest.repo_id.in_(all_repo_ids),
+        PullRequest.state == "merged",
+    ).scalar() or 0
 
-    # ── Coding Streak ─────────────────────────────────────────────────
-    from datetime import timezone, date
-    import pytz
+    issues_resolved = db.query(func.count(Issue.id)).filter(
+        Issue.repo_id.in_(all_repo_ids),
+        Issue.state == "closed",
+    ).scalar() or 0
 
-    rows = db.query(
-        func.date(Commit.committed_at).label("date")
-    ).filter(
-        Commit.repo_id.in_(repo_ids)
-    ).distinct().all()
-
-    commit_dates = set()
-    for row in rows:
-        if row.date:
-            if isinstance(row.date, str):
-                commit_dates.add(date.fromisoformat(row.date))
-            else:
-                commit_dates.add(row.date)
-
-    # Use IST for "today" since user is in India
-    ist = pytz.timezone("Asia/Kolkata")
-    today = datetime.now(ist).date()
+    # Coding streak
+    today = datetime.utcnow().date()
     streak = 0
     check_date = today
-
-    # Allow yesterday too in case today's commits haven't happened yet
-    if today not in commit_dates:
-        check_date = today - timedelta(days=1)
-
-    while check_date in commit_dates:
+    while True:
+        count = db.query(func.count(Commit.id)).filter(
+            Commit.repo_id.in_(non_fork_repo_ids),
+            func.date(Commit.committed_at) == check_date,
+        ).scalar() or 0
+        if count == 0:
+            break
         streak += 1
         check_date -= timedelta(days=1)
 
@@ -90,23 +82,22 @@ def get_heatmap(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
-    ]
+    repo_ids = get_user_repo_ids(current_user.id, db)
 
     one_year_ago = datetime.utcnow() - timedelta(days=365)
 
-    rows = db.query(
-        func.date(Commit.committed_at).label("date"),
-        func.count(Commit.id).label("count"),
-    ).filter(
-        Commit.repo_id.in_(repo_ids),
-        Commit.committed_at >= one_year_ago,
-    ).group_by(
-        func.date(Commit.committed_at)
-    ).all()
+    rows = (
+        db.query(
+            func.date(Commit.committed_at).label("date"),
+            func.count(Commit.id).label("count"),
+        )
+        .filter(
+            Commit.repo_id.in_(repo_ids),
+            Commit.committed_at >= one_year_ago,
+        )
+        .group_by(func.date(Commit.committed_at))
+        .all()
+    )
 
     return [{"date": str(row.date), "count": row.count} for row in rows]
 
@@ -115,43 +106,31 @@ def get_heatmap(
 
 @router.get("/commit-frequency")
 def get_commit_frequency(
-    period: str = Query("month", enum=["week", "month", "year"]),
+    range: str = Query("month", enum=["week", "month", "year"]),
     repo_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
+    repo_ids = get_user_repo_ids(current_user.id, db)
+    if repo_id and repo_id in repo_ids:
+        repo_ids = [repo_id]
 
-    if repo_id:
-        repo = db.query(Repository).filter(
-            Repository.id == repo_id,
-            Repository.user_id == user_id
-        ).first()
-        repo_ids = [repo.id] if repo else []
-    else:
-        repo_ids = [
-            r.id for r in db.query(Repository.id)
-            .filter(Repository.user_id == user_id).all()
-        ]
+    delta_map = {"week": 7, "month": 30, "year": 365}
+    since = datetime.utcnow() - timedelta(days=delta_map[range])
 
-    if period == "week":
-        since = datetime.utcnow() - timedelta(days=7)
-    elif period == "month":
-        since = datetime.utcnow() - timedelta(days=30)
-    else:
-        since = datetime.utcnow() - timedelta(days=365)
-
-    rows = db.query(
-        func.date(Commit.committed_at).label("date"),
-        func.count(Commit.id).label("count"),
-    ).filter(
-        Commit.repo_id.in_(repo_ids),
-        Commit.committed_at >= since,
-    ).group_by(
-        func.date(Commit.committed_at)
-    ).order_by(
-        func.date(Commit.committed_at)
-    ).all()
+    rows = (
+        db.query(
+            func.date(Commit.committed_at).label("date"),
+            func.count(Commit.id).label("count"),
+        )
+        .filter(
+            Commit.repo_id.in_(repo_ids),
+            Commit.committed_at >= since,
+        )
+        .group_by(func.date(Commit.committed_at))
+        .order_by(func.date(Commit.committed_at))
+        .all()
+    )
 
     return [{"date": str(row.date), "count": row.count} for row in rows]
 
@@ -163,22 +142,19 @@ def get_languages(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
-    ]
+    repo_ids = get_user_repo_ids(current_user.id, db)
 
-    rows = db.query(
-        RepositoryLanguage.language,
-        func.sum(RepositoryLanguage.percentage).label("total"),
-    ).filter(
-        RepositoryLanguage.repo_id.in_(repo_ids),
-    ).group_by(
-        RepositoryLanguage.language
-    ).order_by(
-        func.sum(RepositoryLanguage.percentage).desc()
-    ).limit(8).all()
+    rows = (
+        db.query(
+            RepositoryLanguage.language,
+            func.sum(RepositoryLanguage.percentage).label("total"),
+        )
+        .filter(RepositoryLanguage.repo_id.in_(repo_ids))
+        .group_by(RepositoryLanguage.language)
+        .order_by(func.sum(RepositoryLanguage.percentage).desc())
+        .limit(8)
+        .all()
+    )
 
     total = sum(r.total for r in rows) or 1
     return [
@@ -197,27 +173,22 @@ def get_coding_time(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
-    ]
+    repo_ids = get_user_repo_ids(current_user.id, db)
 
-    rows = db.query(
-        func.extract("hour", Commit.committed_at).label("hour"),
-        func.count(Commit.id).label("count"),
-    ).filter(
-        Commit.repo_id.in_(repo_ids),
-    ).group_by(
-        func.extract("hour", Commit.committed_at)
-    ).order_by(
-        func.extract("hour", Commit.committed_at)
-    ).all()
+    rows = (
+        db.query(
+            func.extract("hour", Commit.committed_at).label("hour"),
+            func.count(Commit.id).label("count"),
+        )
+        .filter(Commit.repo_id.in_(repo_ids))
+        .group_by(func.extract("hour", Commit.committed_at))
+        .order_by(func.extract("hour", Commit.committed_at))
+        .all()
+    )
 
-    # Build full 24-hour array (fill missing hours with 0)
     hour_map = {int(row.hour): row.count for row in rows}
     return [
-        {"hour": h, "count": hour_map.get(h, 0)}
+        {"hour": h, "label": f"{h:02d}:00", "count": hour_map.get(h, 0)}
         for h in range(24)
     ]
 
@@ -229,36 +200,33 @@ def get_pr_cycle_time(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
-    ]
+    repo_ids = get_user_repo_ids(current_user.id, db)
 
-    merged_prs = db.query(PullRequest).filter(
-        PullRequest.repo_id.in_(repo_ids),
-        PullRequest.state == "merged",
-        PullRequest.opened_at.isnot(None),
-        PullRequest.merged_at.isnot(None),
-    ).all()
+    prs = (
+        db.query(PullRequest)
+        .filter(
+            PullRequest.repo_id.in_(repo_ids),
+            PullRequest.state == "merged",
+            PullRequest.opened_at.isnot(None),
+            PullRequest.merged_at.isnot(None),
+        )
+        .all()
+    )
 
-    if not merged_prs:
+    if not prs:
         return {"average_hours": 0, "data": []}
 
-    durations = []
-    for pr in merged_prs:
-        delta = pr.merged_at - pr.opened_at
-        hours = round(delta.total_seconds() / 3600, 1)
-        durations.append({
+    data = []
+    for pr in prs:
+        hours = (pr.merged_at - pr.opened_at).total_seconds() / 3600
+        data.append({
             "title": pr.title[:40],
-            "hours": hours,
-            "merged_at": str(pr.merged_at.date()) if pr.merged_at else None,
+            "hours": round(hours, 1),
+            "merged_at": str(pr.merged_at.date()),
         })
 
-    durations.sort(key=lambda x: x["merged_at"] or "")
-    avg = round(sum(d["hours"] for d in durations) / len(durations), 1)
-
-    return {"average_hours": avg, "data": durations[-30:]}  # last 30 PRs
+    avg = round(sum(d["hours"] for d in data) / len(data), 1)
+    return {"average_hours": avg, "data": data[-30:]}
 
 
 # ── Day of Week Activity ──────────────────────────────────────────
@@ -268,67 +236,18 @@ def get_day_of_week(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user_id = current_user.id
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user_id).all()
-    ]
+    repo_ids = get_user_repo_ids(current_user.id, db)
 
-    rows = db.query(
-        func.extract("dow", Commit.committed_at).label("dow"),
-        func.count(Commit.id).label("count"),
-    ).filter(
-        Commit.repo_id.in_(repo_ids),
-    ).group_by(
-        func.extract("dow", Commit.committed_at)
-    ).all()
+    rows = (
+        db.query(
+            func.extract("dow", Commit.committed_at).label("dow"),
+            func.count(Commit.id).label("count"),
+        )
+        .filter(Commit.repo_id.in_(repo_ids))
+        .group_by(func.extract("dow", Commit.committed_at))
+        .all()
+    )
 
     days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     dow_map = {int(row.dow): row.count for row in rows}
-    return [
-        {"day": days[i], "count": dow_map.get(i, 0)}
-        for i in range(7)
-    ]
-
-@router.get("/debug/streak-open")
-def debug_streak_open(db: Session = Depends(get_db)):
-    # Returns first user's data — only for debugging
-    from app.models import User
-    user = db.query(User).first()
-    if not user:
-        return {"error": "no users"}
-
-    repo_ids = [
-        r.id for r in db.query(Repository.id)
-        .filter(Repository.user_id == user.id).all()
-    ]
-
-    total = db.query(func.count(Commit.id))\
-        .filter(Commit.repo_id.in_(repo_ids)).scalar()
-
-    null_dates = db.query(func.count(Commit.id))\
-        .filter(Commit.repo_id.in_(repo_ids), Commit.committed_at == None).scalar()
-
-    rows = db.query(
-        func.date(Commit.committed_at).label("date")
-    ).filter(
-        Commit.repo_id.in_(repo_ids),
-        Commit.committed_at != None
-    ).distinct().order_by(
-        func.date(Commit.committed_at).desc()
-    ).all()
-
-    distinct_dates = [str(row.date) for row in rows if row.date]
-
-    import pytz
-    ist = pytz.timezone("Asia/Kolkata")
-    today_ist = str(datetime.now(ist).date())
-    today_utc = str(datetime.utcnow().date())
-
-    return {
-        "total_commits": total,
-        "null_date_commits": null_dates,
-        "today_utc": today_utc,
-        "today_ist": today_ist,
-        "all_distinct_dates": distinct_dates,
-    }
+    return [{"day": days[i], "count": dow_map.get(i, 0)} for i in range(7)]

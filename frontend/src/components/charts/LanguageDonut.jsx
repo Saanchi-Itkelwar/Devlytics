@@ -6,27 +6,29 @@ const COLORS = [
 ]
 
 export default function LanguageDonut({ data = [] }) {
-  if (!data.length) return (
-    <div className="flex items-center justify-center h-40 text-xs text-muted">
-      No language data
-    </div>
-  )
+  if (!data.length) {
+    return (
+      <div className="h-48 flex items-center justify-center">
+        <p className="text-xs text-muted">No language data yet</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex items-center gap-6">
-      <ResponsiveContainer width={140} height={140}>
+    <div className="flex flex-col gap-4">
+      <ResponsiveContainer width="100%" height={160}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={42}
-            outerRadius={65}
+            innerRadius={45}
+            outerRadius={70}
             paddingAngle={2}
             dataKey="percentage"
           >
             {data.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="transparent" />
+              <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
@@ -34,6 +36,7 @@ export default function LanguageDonut({ data = [] }) {
               backgroundColor: "#131929",
               border: "1px solid #1E2A3A",
               borderRadius: "8px",
+              color: "#fff",
               fontSize: "12px",
             }}
             formatter={(value, name, props) => [
@@ -45,15 +48,15 @@ export default function LanguageDonut({ data = [] }) {
       </ResponsiveContainer>
 
       {/* Legend */}
-      <div className="flex flex-col gap-2 flex-1">
-        {data.slice(0, 6).map((item, i) => (
-          <div key={item.language} className="flex items-center justify-between">
+      <div className="space-y-1.5">
+        {data.slice(0, 5).map((item, i) => (
+          <div key={i} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: COLORS[i % COLORS.length] }}
               />
-              <span className="text-xs text-white truncate max-w-24">{item.language}</span>
+              <span className="text-xs text-white">{item.language}</span>
             </div>
             <span className="text-xs text-muted">{item.percentage}%</span>
           </div>
