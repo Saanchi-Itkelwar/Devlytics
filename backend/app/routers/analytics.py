@@ -289,3 +289,46 @@ def get_day_of_week(
         {"day": days[i], "count": dow_map.get(i, 0)}
         for i in range(7)
     ]
+
+@router.get("/debug/streak-open")
+def debug_streak_open(db: Session = Depends(get_db)):
+    # Returns first user's data — only for debugging
+    from app.models import User
+    user = db.query(User).first()
+    if not user:
+        return {"error": "no users"}
+
+    repo_ids = [
+        r.id for r in db.query(Repository.id)
+        .filter(Repository.user_id == user.id).all()
+    ]
+
+    total = db.query(func.count(Commit.id))\
+        .filter(Commit.repo_id.in_(repo_ids)).scalar()
+
+    null_dates = db.query(func.count(Commit.id))\
+        .filter(Commit.repo_id.in_(repo_ids), Commit.committed_at == None).scalar()
+
+    rows = db.query(
+        func.date(Commit.committed_at).label("date")
+    ).filter(
+        Commit.repo_id.in_(repo_ids),
+        Commit.committed_at != None
+    ).distinct().order_by(
+        func.date(Commit.committed_at).desc()
+    ).all()
+
+    distinct_dates = [str(row.date) for row in rows if row.date]
+
+    import pytz
+    ist = pytz.timezone("Asia/Kolkata")
+    today_ist = str(datetime.now(ist).date())
+    today_utc = str(datetime.utcnow().date())
+
+    return {
+        "total_commits": total,
+        "null_date_commits": null_dates,
+        "today_utc": today_utc,
+        "today_ist": today_ist,
+        "all_distinct_dates": distinct_dates,
+    }
