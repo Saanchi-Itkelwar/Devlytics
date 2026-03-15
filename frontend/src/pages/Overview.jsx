@@ -4,6 +4,7 @@ import CommitHeatmap from "../components/charts/CommitHeatmap"
 import LanguageDonut from "../components/charts/LanguageDonut"
 import CodingTimeChart from "../components/charts/CodingTimeChart"
 import { useOverview, useHeatmap, useLanguages, useCodingTime } from "../hooks/useAnalytics"
+import { useInsightCards } from "../hooks/useAnalytics"
 
 function StatCard({ label, value, icon: Icon, color, loading }) {
   return (
@@ -31,6 +32,7 @@ export default function Overview() {
   const { data: heatmap, loading: heatmapLoading } = useHeatmap()
   const { data: languages, loading: languagesLoading } = useLanguages()
   const { data: codingTime, loading: codingTimeLoading } = useCodingTime()
+  const { data: insightCards, loading: insightCardsLoading } = useInsightCards()
 
   const stats = [
     { label: "Total Commits", value: overview?.total_commits?.toLocaleString(), icon: GitCommit, color: "#5B8CFF" },
@@ -100,15 +102,38 @@ export default function Overview() {
         )}
       </div>
 
-      {/* AI Insights placeholder */}
+      {/* AI Insights */}
       <div className="bg-surface border border-border-custom rounded-xl p-5">
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-2 h-2 rounded-full bg-accent-blue animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-accent-purple animate-pulse" />
           <h3 className="text-sm font-medium text-white">AI Insights</h3>
+          <span className="text-xs bg-accent-purple/15 text-accent-purple px-2 py-0.5 rounded-full ml-1">
+            Gemini
+          </span>
         </div>
-        <div className="h-16 flex items-center justify-center border border-dashed border-border-custom rounded-lg">
-          <p className="text-xs text-muted">AI insights coming in Phase 5</p>
-        </div>
+        {insightCardsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="h-16 bg-border-custom/30 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        ) : insightCards.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {insightCards.slice(0, 2).map((card, i) => (
+              <div key={i} className="bg-[#0B0F17] border border-border-custom rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span>{card.emoji}</span>
+                  <span className="text-xs text-muted">{card.title}</span>
+                </div>
+                <p className="text-sm text-white">{card.insight}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="h-16 flex items-center justify-center border border-dashed border-border-custom rounded-lg">
+            <p className="text-xs text-muted">Sync data to generate AI insights</p>
+          </div>
+        )}
       </div>
     </div>
   )
