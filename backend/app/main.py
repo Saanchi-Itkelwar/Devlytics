@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
-from app.routers import health, auth, sync, analytics, repos, ai_insights, productivity
+from app.routers import health, auth, sync, analytics, repos, ai_insights, productivity, timeline, settings
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,6 +26,8 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"]
 app.include_router(repos.router, prefix="/api/repos", tags=["Repos"])
 app.include_router(ai_insights.router, prefix="/api/ai", tags=["AI"])
 app.include_router(productivity.router, prefix="/api/productivity", tags=["Productivity"])
+app.include_router(timeline.router, prefix="/api/timeline", tags=["Timeline"])
+app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
 
 @app.get("/")

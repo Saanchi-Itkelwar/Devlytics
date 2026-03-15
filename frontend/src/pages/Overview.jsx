@@ -1,10 +1,11 @@
 import { GitCommit, GitMerge, BookOpen, Flame, CheckCircle, RefreshCw } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { motion } from "framer-motion"
 import CommitHeatmap from "../components/charts/CommitHeatmap"
 import LanguageDonut from "../components/charts/LanguageDonut"
 import CodingTimeChart from "../components/charts/CodingTimeChart"
-import { useOverview, useHeatmap, useLanguages, useCodingTime } from "../hooks/useAnalytics"
-import { useInsightCards } from "../hooks/useAnalytics"
+import { useOverview, useHeatmap, useLanguages, useCodingTime, useInsightCards } from "../hooks/useAnalytics"
+import { staggerContainer, staggerItem, cardHover } from "../utils/animations"
 
 function StatCard({ label, value, icon: Icon, color, loading }) {
   return (
@@ -43,22 +44,32 @@ export default function Overview() {
   ]
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      variants={staggerContainer}
+      initial="initial"
+      animate="animate"
+      className="space-y-6"
+    >
       {/* Header */}
-      <div>
+      <motion.div variants={staggerItem}>
         <h2 className="text-xl font-semibold text-white">Command Center</h2>
         <p className="text-sm text-muted mt-1">Your developer activity at a glance.</p>
-      </div>
+      </motion.div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4"
+      >
         {stats.map((s) => (
-          <StatCard key={s.label} {...s} loading={overviewLoading} />
+          <motion.div key={s.label} variants={staggerItem} {...cardHover}>
+            <StatCard {...s} loading={overviewLoading} />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Heatmap + Languages */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <motion.div variants={staggerItem} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-surface border border-border-custom rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -87,10 +98,13 @@ export default function Overview() {
             <LanguageDonut data={languages} />
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Coding Time */}
-      <div className="bg-surface border border-border-custom rounded-xl p-5">
+      <motion.div
+        variants={staggerItem}
+        className="bg-surface border border-border-custom rounded-xl p-5"
+      >
         <div className="mb-4">
           <h3 className="text-sm font-medium text-white">Coding Time Pattern</h3>
           <p className="text-xs text-muted mt-0.5">When you commit most throughout the day</p>
@@ -100,10 +114,13 @@ export default function Overview() {
         ) : (
           <CodingTimeChart data={codingTime} />
         )}
-      </div>
+      </motion.div>
 
       {/* AI Insights */}
-      <div className="bg-surface border border-border-custom rounded-xl p-5">
+      <motion.div
+        variants={staggerItem}
+        className="bg-surface border border-border-custom rounded-xl p-5"
+      >
         <div className="flex items-center gap-2 mb-4">
           <div className="w-2 h-2 rounded-full bg-accent-purple animate-pulse" />
           <h3 className="text-sm font-medium text-white">AI Insights</h3>
@@ -118,23 +135,30 @@ export default function Overview() {
             ))}
           </div>
         ) : insightCards.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <motion.div
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          >
             {insightCards.slice(0, 2).map((card, i) => (
-              <div key={i} className="bg-[#0B0F17] border border-border-custom rounded-xl p-3">
+              <motion.div
+                key={i}
+                variants={staggerItem}
+                className="bg-[#0B0F17] border border-border-custom rounded-xl p-3"
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <span>{card.emoji}</span>
                   <span className="text-xs text-muted">{card.title}</span>
                 </div>
                 <p className="text-sm text-white">{card.insight}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <div className="h-16 flex items-center justify-center border border-dashed border-border-custom rounded-lg">
             <p className="text-xs text-muted">Sync data to generate AI insights</p>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

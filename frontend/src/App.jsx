@@ -6,7 +6,8 @@ import Repositories from "./pages/Repositories"
 import RepoDetail from "./pages/RepoDetail"
 import AIInsights from "./pages/AIInsights"
 import Productivity from "./pages/Productivity"
-import Placeholder from "./pages/Placeholder"
+import Timeline from "./pages/Timeline"
+import Settings from "./pages/Settings"
 import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
 import ProtectedRoute from "./components/ProtectedRoute"
@@ -31,8 +32,8 @@ export default function App() {
           <Route path="/repositories/:id" element={<RepoDetail />} />
           <Route path="/ai-insights" element={<AIInsights />} />
           <Route path="/productivity" element={<Productivity />} />
-          <Route path="/timeline" element={<Placeholder page="Timeline" />} />
-          <Route path="/settings" element={<Placeholder page="Settings" />} />
+          <Route path="/timeline" element={<Timeline />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
