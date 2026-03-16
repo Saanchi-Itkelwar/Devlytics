@@ -1,9 +1,8 @@
 from google import genai
-from google.genai import types
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from datetime import datetime, timedelta
-from app.models import Repository, Commit, PullRequest, Issue, RepositoryLanguage, User
+from app.models import Repository, Commit, PullRequest, RepositoryLanguage
 import os
 import json
 
@@ -14,7 +13,7 @@ def build_user_context(user_id: int, db: Session) -> dict:
     repo_ids = [
         r.id for r in db.query(Repository).filter(
             Repository.user_id == user_id,
-            Repository.is_fork == False,
+            Repository.is_fork.is_(False),
         ).all()
     ]
 
@@ -84,7 +83,7 @@ def build_user_context(user_id: int, db: Session) -> dict:
 
     total_repos = db.query(func.count(Repository.id)).filter(
         Repository.user_id == user_id,
-        Repository.is_fork == False,
+        Repository.is_fork.is_(False),
     ).scalar() or 0
 
     recent_messages = (
@@ -127,7 +126,7 @@ def generate_weekly_digest(user_id: int, db: Session) -> str:
         return "No coding activity found yet. Sync your GitHub data to get your weekly digest."
 
     prompt = f"""
-You are a developer analytics assistant. Write a short, friendly weekly digest 
+You are a developer analytics assistant. Write a short, friendly weekly digest
 for a developer based on their GitHub activity.
 
 Data:

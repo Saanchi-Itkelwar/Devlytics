@@ -13,7 +13,7 @@ def get_non_fork_repo_ids(user_id: int, db: Session) -> list[int]:
     return [
         r.id for r in db.query(Repository).filter(
             Repository.user_id == user_id,
-            Repository.is_fork == False,
+            Repository.is_fork.is_(False),
         ).all()
     ]
 

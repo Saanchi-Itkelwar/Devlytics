@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from datetime import datetime, timedelta
 from typing import Optional
 from app.database import get_db
 from app.models import User, Repository, Commit, PullRequest, Issue

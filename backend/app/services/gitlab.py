@@ -7,7 +7,8 @@ import asyncio
 
 
 BASE_URL = "https://gitlab.com/api/v4"
-HEADERS = lambda token: {"Authorization": f"Bearer {token}"}
+def HEADERS(token):
+    return {"Authorization": f"Bearer {token}"}
 
 
 async def fetch_gitlab_repos(token: str) -> list:

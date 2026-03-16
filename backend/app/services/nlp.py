@@ -1,6 +1,5 @@
 from textblob import TextBlob
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from app.models import Commit, Repository
 from datetime import datetime, timedelta
 
@@ -62,7 +61,7 @@ def get_sentiment_timeline(user_id: int, db: Session, days: int = 90) -> list:
     repo_ids = [
         r.id for r in db.query(Repository).filter(
             Repository.user_id == user_id,
-            Repository.is_fork == False,
+            Repository.is_fork.is_(False),
         ).all()
     ]
 
@@ -126,7 +125,7 @@ def get_commit_mood_summary(user_id: int, db: Session) -> dict:
     repo_ids = [
         r.id for r in db.query(Repository).filter(
             Repository.user_id == user_id,
-            Repository.is_fork == False,
+            Repository.is_fork.is_(False),
         ).all()
     ]
 

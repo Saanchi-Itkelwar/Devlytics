@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import Optional
 from app.database import get_db
@@ -27,7 +27,7 @@ def get_overview(
     non_fork_repo_ids = [
         r.id for r in db.query(Repository).filter(
             Repository.user_id == current_user.id,
-            Repository.is_fork == False,
+            Repository.is_fork.is_(False),
         ).all()
     ]
 
@@ -39,7 +39,7 @@ def get_overview(
 
     active_repos = db.query(func.count(Repository.id)).filter(
         Repository.user_id == current_user.id,
-        Repository.is_fork == False,
+        Repository.is_fork.is_(False),
     ).scalar() or 0
 
     prs_merged = db.query(func.count(PullRequest.id)).filter(

@@ -131,6 +131,6 @@ def get_repo_detail(
             {"date": str(r.date), "count": r.count} for r in commit_freq
         ],
         "languages": [
-            {"language": l.language, "percentage": l.percentage} for l in languages
+            {"language": lang.language, "percentage": lang.percentage} for lang in languages
         ],
     }

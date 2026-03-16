@@ -6,11 +6,12 @@ import asyncio
 
 
 BASE_URL = "https://api.github.com"
-HEADERS = lambda token: {
-    "Authorization": f"Bearer {token}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
+def HEADERS(token):
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
 
 
 async def fetch_github_repos(token: str) -> list:
