@@ -175,16 +175,27 @@ export function useWeeklyDigest() {
 
 export function useInsightCards() {
   const [data, setData] = useState([])
+  const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    api.get("/api/ai/insight-cards")
-      .then(res => setData(res.data.cards || []))
+  const fetch = (forceRefresh = false) => {
+    setLoading(true)
+    api.get(`/api/ai/insight-cards${forceRefresh ? "?force_refresh=true" : ""}`)
+      .then(res => {
+        setData(res.data.cards || [])
+        setMeta({
+          cached: res.data.cached,
+          generated_at: res.data.generated_at,
+          expires_at: res.data.expires_at,
+        })
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }
 
-  return { data, loading }
+  useEffect(() => { fetch() }, [])
+
+  return { data, meta, loading, refresh: () => fetch(true) }
 }
 
 export function usePersona() {

@@ -114,7 +114,7 @@ def build_user_context(user_id: int, db: Session) -> dict:
 
 def _call_gemini(prompt: str) -> str:
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-2.5-flash-lite",
         contents=prompt,
     )
     return response.text.strip()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -113,3 +113,18 @@ class Issue(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     repository = relationship("Repository", back_populates="issues")
+
+
+class AICache(Base):
+    __tablename__ = "ai_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    cache_key = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    generated_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "cache_key", name="uq_ai_cache_user_key"),
+    )
