@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, GitCommit, GitMerge, AlertCircle, Star, GitFork } from "lucide-react"
+import { ArrowLeft, Star, GitFork } from "lucide-react"
 import { useRepoDetail } from "../hooks/useAnalytics"
 import CommitFrequencyChart from "../components/charts/CommitFrequencyChart"
 import LanguageDonut from "../components/charts/LanguageDonut"

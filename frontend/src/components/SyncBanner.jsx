@@ -1,4 +1,4 @@
-import { RefreshCw, CheckCircle, AlertCircle, Github } from "lucide-react"
+import { RefreshCw, AlertCircle, Github } from "lucide-react"
 import { useSync } from "../hooks/useSync"
 
 export default function SyncBanner() {

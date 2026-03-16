@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { GitBranch, Star, GitFork, Lock, Globe, ChevronRight, Search } from "lucide-react"
+import { GitBranch, Lock, Globe, ChevronRight, Search } from "lucide-react"
 import { useRepos } from "../hooks/useAnalytics"
 import { staggerContainer, staggerItem } from "../utils/animations"
 

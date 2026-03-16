@@ -1,0 +1,104 @@
+stages:
+  - lint
+  - test
+  - build
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  NODE_VERSION: "20"
+
+# ── Backend ───────────────────────────────────────────────────────
+
+backend:lint:
+  stage: lint
+  image: python:3.11-slim
+  cache:
+    paths:
+      - .cache/pip
+  script:
+    - cd backend
+    - pip install ruff
+    - ruff check app/
+  only:
+    - main
+    - merge_requests
+
+backend:test:
+  stage: test
+  image: python:3.11-slim
+  cache:
+    paths:
+      - .cache/pip
+  variables:
+    DATABASE_URL: "sqlite:///./test.db"
+    SECRET_KEY: "ci-test-secret-key"
+    GITHUB_CLIENT_ID: "test"
+    GITHUB_CLIENT_SECRET: "test"
+    GITLAB_CLIENT_ID: "test"
+    GITLAB_CLIENT_SECRET: "test"
+    GEMINI_API_KEY: "test"
+  script:
+    - cd backend
+    - pip install -r requirements.txt
+    - python -m textblob.download_corpora
+    - pytest -v
+  artifacts:
+    reports:
+      junit: backend/test-results.xml
+    expire_in: 1 week
+  only:
+    - main
+    - merge_requests
+
+# ── Frontend ──────────────────────────────────────────────────────
+
+frontend:lint:
+  stage: lint
+  image: node:20-alpine
+  cache:
+    paths:
+      - frontend/node_modules/
+  script:
+    - cd frontend
+    - npm ci
+    - npm run lint
+  only:
+    - main
+    - merge_requests
+
+frontend:build:
+  stage: build
+  image: node:20-alpine
+  cache:
+    paths:
+      - frontend/node_modules/
+  variables:
+    VITE_API_URL: "http://localhost:8000"
+    VITE_GITHUB_CLIENT_ID: "test"
+    VITE_GITLAB_CLIENT_ID: "test"
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
+  only:
+    - main
+
+# ── Docker ────────────────────────────────────────────────────────
+
+docker:build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs:
+    - backend:test
+    - frontend:build
+  script:
+    - docker build -t devlytics-backend ./backend
+    - docker build -t devlytics-frontend ./frontend
+  only:
+    - main

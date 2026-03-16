@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { RefreshCw } from "lucide-react"
 import CommitFrequencyChart from "../components/charts/CommitFrequencyChart"
 import { useCommitFrequency, usePRCycleTime, useDayOfWeek } from "../hooks/useAnalytics"
 import {

@@ -178,9 +178,10 @@ export function useInsightCards() {
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetch = (forceRefresh = false) => {
+  // Separate refresh function — always resets loading state
+  const refresh = useCallback((forceRefresh = false) => {
     setLoading(true)
-    api.get(`/api/ai/insight-cards${forceRefresh ? "?force_refresh=true" : ""}`)
+    return api.get(`/api/ai/insight-cards${forceRefresh ? "?force_refresh=true" : ""}`)
       .then(res => {
         setData(res.data.cards || [])
         setMeta({
@@ -191,11 +192,24 @@ export function useInsightCards() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }
+  }, [])
 
-  useEffect(() => { fetch() }, [])
+  // Initial fetch: loading is already true from useState, so no setState in the effect body
+  useEffect(() => {
+    api.get("/api/ai/insight-cards")
+      .then(res => {
+        setData(res.data.cards || [])
+        setMeta({
+          cached: res.data.cached,
+          generated_at: res.data.generated_at,
+          expires_at: res.data.expires_at,
+        })
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [])
 
-  return { data, meta, loading, refresh: () => fetch(true) }
+  return { data, meta, loading, refresh: () => refresh(true) }
 }
 
 export function usePersona() {

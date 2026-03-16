@@ -1,13 +1,22 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
 venv/
 .env
+test.db
+.pytest_cache/
+.ruff_cache/
 
 # Node
 node_modules/
 dist/
 .env.local
+.env.production
 
 # Docker
 *.log
+
+# OS
+.DS_Store
+Thumbs.db

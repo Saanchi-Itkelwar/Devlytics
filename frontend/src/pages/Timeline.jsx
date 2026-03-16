@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useCallback } from "react"
+import { motion } from "framer-motion"
 import { GitCommit, GitMerge, AlertCircle, Filter, RefreshCw } from "lucide-react"
 import { staggerContainer, staggerItem } from "../utils/animations"
 import { Skeleton } from "../components/Skeleton"
@@ -142,7 +142,7 @@ export default function Timeline() {
 
   useEffect(() => {
     fetchEvents(filter, 0)
-  }, [filter])
+  }, [filter, fetchEvents])
 
   const handleFilter = (key) => {
     setFilter(key)
