@@ -1,38 +1,31 @@
 # Devlytics
 
-> **AI-powered developer analytics platform** that connects to your GitHub and GitLab to uncover patterns in your development workflow, productivity, and coding behavior.
-
-## Overview
-
 Devlytics is a personal developer analytics platform that gives you deep insights into your GitHub and GitLab coding activity. It combines rich data visualizations with Gemini AI to help you understand when you code, what you build, and how productive you are — all in one dark, premium dashboard.
 
 Built as a full-stack portfolio project demonstrating AI integration, data observability, developer behavior analytics, and real SaaS-quality UX.
 
----
-
 [Live Demo](https://devlyticss.netlify.app)
 
----
 
 ## Screenshots
 
 ### Landing Page
-![Landing Page](screenshots\landing.png)
+![Landing Page](screenshots/landing.png)
 
 ### Overview Dashboard
-![Overview Dashboard](screenshots\overview.png)
+![Overview Dashboard](screenshots/overview.png)
 
 ### Activity Analytics
-![Activity Analytics](screenshots\activity.png)
+![Activity Analytics](screenshots/activity.png)
 
 ### AI Insights
-![AI Insights](screenshots\ai-insights.png)
+![AI Insights](screenshots/ai-insights.png)
 
 ### Developer Persona
-![Developer Persona](screenshots\persona.png)
+![Developer Persona](screenshots/persona.png)
 
 ### Repositories
-![Repositories](screenshots\repositories.png)
+![Repositories](screenshots/repositories.png)
 
 ---
 
