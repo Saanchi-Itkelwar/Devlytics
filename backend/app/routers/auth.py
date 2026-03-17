@@ -20,7 +20,8 @@ GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 GITLAB_CLIENT_ID = os.getenv("GITLAB_CLIENT_ID")
 GITLAB_CLIENT_SECRET = os.getenv("GITLAB_CLIENT_SECRET")
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 
 # ── Email / Password ──────────────────────────────────────────────
@@ -139,7 +140,7 @@ def gitlab_login():
     url = (
         f"https://gitlab.com/oauth/authorize"
         f"?client_id={GITLAB_CLIENT_ID}"
-        f"&redirect_uri=http://localhost:8000/api/auth/gitlab/callback"
+        f"&redirect_uri={BACKEND_URL}/api/auth/gitlab/callback"
         f"&response_type=code"
         f"&scope=read_user+read_api"
     )
@@ -160,7 +161,7 @@ async def gitlab_callback(
                 "client_secret": GITLAB_CLIENT_SECRET,
                 "code": code,
                 "grant_type": "authorization_code",
-                "redirect_uri": "http://localhost:8000/api/auth/gitlab/callback",
+                "redirect_uri": f"{BACKEND_URL}/api/auth/gitlab/callback",
             },
         )
         token_data = token_res.json()
