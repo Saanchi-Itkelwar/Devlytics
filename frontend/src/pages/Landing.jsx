@@ -2,17 +2,11 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import {
   Zap, Github, ArrowRight, GitCommit, Brain,
-  BarChart2, GitBranch, Clock, ChevronRight,
-  Star, CheckCircle,
+  BarChart2, GitBranch, ChevronRight,
+  CheckCircle,
 } from "lucide-react"
 
 // ── Animation Variants ─────────────────────────────────────────
-
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, ease: "easeOut" },
-}
 
 const stagger = {
   animate: { transition: { staggerChildren: 0.1 } },
