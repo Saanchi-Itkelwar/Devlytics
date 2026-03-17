@@ -20,13 +20,8 @@ export default function AuthCallback() {
     }
 
     login(token)
-      .then(() => {
-        navigate("/", { replace: true })
-      })
-      .catch((err) => {
-        console.error("Login failed:", err)
-        navigate("/login", { replace: true })
-      })
+      .then(() => navigate("/dashboard", { replace: true }))
+      .catch(() => navigate("/login", { replace: true }))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

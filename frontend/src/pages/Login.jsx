@@ -35,7 +35,7 @@ export default function Login() {
 
       const res = await api.post(endpoint, payload)
       await login(res.data.access_token)
-      navigate("/")
+      navigate("/dashboard")
     } catch (err) {
       setError(err.response?.data?.detail || "Something went wrong")
     } finally {

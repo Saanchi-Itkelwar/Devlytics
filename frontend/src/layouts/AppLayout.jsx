@@ -4,13 +4,13 @@ import Topbar from "../components/layout/Topbar"
 import SyncBanner from "../components/SyncBanner"
 
 const pageTitles = {
-  "/": "Overview",
-  "/activity": "Activity",
-  "/repositories": "Repositories",
-  "/ai-insights": "AI Insights",
-  "/productivity": "Productivity",
-  "/timeline": "Timeline",
-  "/settings": "Settings",
+  "/dashboard": "Overview",
+  "/dashboard/activity": "Activity",
+  "/dashboard/repositories": "Repositories",
+  "/dashboard/ai-insights": "AI Insights",
+  "/dashboard/productivity": "Productivity",
+  "/dashboard/timeline": "Timeline",
+  "/dashboard/settings": "Settings",
 }
 
 export default function AppLayout() {

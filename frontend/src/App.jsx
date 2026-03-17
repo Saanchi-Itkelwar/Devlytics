@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import AppLayout from "./layouts/AppLayout"
+import Landing from "./pages/Landing"
 import Overview from "./pages/Overview"
 import Activity from "./pages/Activity"
 import Repositories from "./pages/Repositories"
@@ -16,24 +17,28 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public */}
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
+        {/* Protected */}
         <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <AppLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Overview />} />
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/repositories" element={<Repositories />} />
-          <Route path="/repositories/:id" element={<RepoDetail />} />
-          <Route path="/ai-insights" element={<AIInsights />} />
-          <Route path="/productivity" element={<Productivity />} />
-          <Route path="/timeline" element={<Timeline />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route index element={<Overview />} />
+          <Route path="activity" element={<Activity />} />
+          <Route path="repositories" element={<Repositories />} />
+          <Route path="repositories/:id" element={<RepoDetail />} />
+          <Route path="ai-insights" element={<AIInsights />} />
+          <Route path="productivity" element={<Productivity />} />
+          <Route path="timeline" element={<Timeline />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>
