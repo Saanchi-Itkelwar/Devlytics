@@ -22,22 +22,22 @@
 ## Screenshots
 
 ### Landing Page
-![Landing Page](https://placehold.co/1200x600/0B0F17/5B8CFF?text=Landing+Page+Screenshot)
+![Landing Page](screenshots\landing.png)
 
 ### Overview Dashboard
-![Overview Dashboard](https://placehold.co/1200x600/0B0F17/5B8CFF?text=Overview+Dashboard+Screenshot)
+![Overview Dashboard](screenshots\overview.png)
 
 ### Activity Analytics
-![Activity Analytics](https://placehold.co/1200x600/0B0F17/9D6BFF?text=Activity+Analytics+Screenshot)
+![Activity Analytics](screenshots\activity.png)
 
 ### AI Insights
-![AI Insights](https://placehold.co/1200x600/0B0F17/9D6BFF?text=AI+Insights+Screenshot)
+![AI Insights](screenshots\ai-insights.png)
 
 ### Developer Persona
-![Developer Persona](https://placehold.co/1200x600/0B0F17/34D399?text=Developer+Persona+Screenshot)
+![Developer Persona](screenshots\persona.png)
 
 ### Repositories
-![Repositories](https://placehold.co/1200x600/0B0F17/5B8CFF?text=Repositories+Screenshot)
+![Repositories](screenshots\repositories.png)
 
 ---
 
