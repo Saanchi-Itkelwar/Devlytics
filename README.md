@@ -2,20 +2,15 @@
 
 > **AI-powered developer analytics platform** that connects to your GitHub and GitLab to uncover patterns in your development workflow, productivity, and coding behavior.
 
-<div align="center">
+## Overview
 
-![Devlytics Banner](https://placehold.co/1200x400/0B0F17/5B8CFF?text=Devlytics+—+Developer+Activity+Analytics)
+Devlytics is a personal developer analytics platform that gives you deep insights into your GitHub and GitLab coding activity. It combines rich data visualizations with Gemini AI to help you understand when you code, what you build, and how productive you are — all in one dark, premium dashboard.
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat-square&logo=react)](https://react.dev)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?style=flat-square&logo=postgresql)](https://supabase.com)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat-square&logo=github-actions)](/.github/workflows/ci.yml)
+Built as a full-stack portfolio project demonstrating AI integration, data observability, developer behavior analytics, and real SaaS-quality UX.
+
+---
 
 [Live Demo](https://devlyticss.netlify.app)
-
-</div>
 
 ---
 
@@ -38,14 +33,6 @@
 
 ### Repositories
 ![Repositories](screenshots\repositories.png)
-
----
-
-## Overview
-
-Devlytics is a personal developer analytics platform that gives you deep insights into your GitHub and GitLab coding activity. It combines rich data visualizations with Gemini AI to help you understand when you code, what you build, and how productive you are — all in one dark, premium dashboard.
-
-Built as a full-stack portfolio project demonstrating AI integration, data observability, developer behavior analytics, and real SaaS-quality UX.
 
 ---
 
